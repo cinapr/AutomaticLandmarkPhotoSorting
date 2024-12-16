@@ -9,7 +9,8 @@
 # and retrieve your photos from different locations 
 # without the hassle of manually sorting through them.
 
-# DEPENDENCIS : pip install Pillow geopy pillow-heif pyheif
+# DEPENDENCIS : pip install Pillow geopy pillow-heif piexif 
+# pip install pyheif (SKIP)
 
 import os
 import shutil
@@ -18,6 +19,8 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
 from PIL import Image
 import pillow_heif
+from pillow_heif import HeifImageFile
+import piexif
 
 # Enable HEIC support
 pillow_heif.register_heif_opener()
@@ -26,10 +29,43 @@ pillow_heif.register_heif_opener()
 def get_gps_info(image_path):
     try:
         img = Image.open(image_path)
+        gps_info = {}
+
+        # Handle HEIF/HEIC files
+        if isinstance(img, HeifImageFile):
+            exif_data = img.info.get("exif", None)
+            if not exif_data:
+                print(f"No EXIF metadata found in HEIC file: {image_path}")
+                return None
+
+            # Decode EXIF data using piexif
+            decoded_exif = piexif.load(exif_data)
+            gps_data = decoded_exif.get("GPS", {})
+            if not gps_data:
+                print(f"No GPS metadata found in HEIC file: {image_path}")
+                return None
+
+            # Parse GPS data
+            def convert_to_degrees(value):
+                d = value[0] / value[1]
+                m = value[2] / value[3]
+                s = value[4] / value[5]
+                return d + (m / 60.0) + (s / 3600.0)
+
+            lat = convert_to_degrees(gps_data[piexif.GPSIFD.GPSLatitude])
+            if gps_data[piexif.GPSIFD.GPSLatitudeRef] != b'N':
+                lat = -lat
+            lon = convert_to_degrees(gps_data[piexif.GPSIFD.GPSLongitude])
+            if gps_data[piexif.GPSIFD.GPSLongitudeRef] != b'E':
+                lon = -lon
+
+            return lat, lon
+
+        # Handle non-HEIC images (e.g., JPEG)
         exif_data = img._getexif()
         if not exif_data:
             return None
-        gps_info = {}
+
         for tag, value in exif_data.items():
             decoded = TAGS.get(tag, tag)
             if decoded == "GPSInfo":
@@ -39,6 +75,7 @@ def get_gps_info(image_path):
         if not gps_info:
             return None
 
+        # Convert GPS info to decimal degrees
         def convert_to_degrees(value):
             d = value[0][0] / value[0][1]
             m = value[1][0] / value[1][1]
@@ -53,9 +90,14 @@ def get_gps_info(image_path):
             lon = -lon
 
         return lat, lon
-    except Exception as e:
-        print(f"Error extracting GPS info: {e}")
+
+    except KeyError as e:
+        print(f"Missing expected GPS field: {e}")
         return None
+    except Exception as e:
+        print(f"Unexpected error extracting GPS info: {e}")
+        return None
+
 
 # Function to get location details using Geopy
 def get_location_details(lat, lon):
