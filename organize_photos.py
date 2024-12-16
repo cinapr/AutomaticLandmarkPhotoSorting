@@ -9,13 +9,18 @@
 # and retrieve your photos from different locations 
 # without the hassle of manually sorting through them.
 
-# DEPENDENCIS : pip install Pillow geopy
+# DEPENDENCIS : pip install Pillow geopy pillow-heif pyheif
 
 import os
 import shutil
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
+from PIL import Image
+import pillow_heif
+
+# Enable HEIC support
+pillow_heif.register_heif_opener()
 
 # Function to extract GPS info from image metadata
 def get_gps_info(image_path):
@@ -71,6 +76,8 @@ def organize_images(image_folder, output_folder):
         if not os.path.isfile(image_path):
             continue
 
+        print(f"Processing {image_path}")
+        
         gps_info = get_gps_info(image_path)
         if gps_info:
             lat, lon = gps_info
@@ -92,6 +99,9 @@ def organize_images(image_folder, output_folder):
 
 # Main execution
 if __name__ == "__main__":
-    image_folder = "/path/to/your/images"  # Replace with your image folder path
-    output_folder = "/path/to/sorted/images"  # Replace with your desired output folder path
+    #image_folder = "/path/to/your/images"  # Replace with your image folder path
+    #output_folder = "/path/to/sorted/images"  # Replace with your desired output folder path
+
+    image_folder = "C:/Users/Asus/Documents/GitHub/AutomaticLandmarkPhotoSorting/INPUT"
+    output_folder = "C:/Users/Asus/Documents/GitHub/AutomaticLandmarkPhotoSorting/OUTPUT"
     organize_images(image_folder, output_folder)
