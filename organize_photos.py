@@ -135,7 +135,7 @@ def get_concise_gmaps_name(latitude, longitude):
                     return component['long_name']
     return "Location not found"
 
-def get_location_details(lat, lon):
+def get_location_details_landmarkGMapsAPI(lat, lon):
     # Use the concise name function to get a simplified address or landmark
     concise_name = get_concise_gmaps_name(lat, lon)
     if concise_name != "Location not found":
@@ -160,7 +160,8 @@ def organize_images(image_folder, output_folder):
         gps_info = get_gps_info(image_path)
         if gps_info:
             lat, lon = gps_info
-            city, landmark = get_location_details(lat, lon)
+            #city, landmark = get_location_details_landmarkGMapsAPI(lat, lon)
+            city, landmark = get_location_details_addressGeopy(lat, lon)
         else:
             city, landmark = "Uncategorized", "Uncategorized"
 
