@@ -6,6 +6,7 @@
 #### Key Features:
 
 -   **Geotagging Support**: Extracts GPS coordinates from image metadata (EXIF) and uses reverse geocoding to identify the city and landmark.
+-   **Points of Interest or Locality**: Converting the langitude and longitude from EXIF metadata into understanable location name using Google Maps API, instead of full address like usually returned by Geopy.
 -   **Automatic Categorization**: Organizes photos into folders for each city, with subfolders for landmarks.
 -   **Uncategorized Photos Handling**: Images without GPS data or recognizable landmarks are moved to an "Uncategorized" folder for manual sorting.
 -   **Customizable Output**: Easily specify the input and output folder paths to suit your needs.
@@ -20,21 +21,28 @@
 #### Prerequisites:
 
 -   Python 3.9
--   Required libraries: Pillow, Geopy (install with `pip install Pillow geopy`)
+-   Required libraries: Pillow, Geopy, pillow-heif, piexif, googlemaps (install with `pip install Pillow geopy pillow-heif piexif googlemaps`)
 
 #### Usage:
 
 1.  Install the Required Libraries
-`pip install Pillow geopy`
+`pip install Pillow geopy pillow-heif piexif googlemaps`
 
 2. Clone or download the repository.
 
-3.  Modify the paths for your input (photos) and output (organized folders).
+3. Set up the Google Maps API:
+    You need an API key from Google Cloud. Follow these steps to get the key:
+    1. Go to the Google [Cloud Console](https://cloud.google.com/cloud-console/)
+    2. Create a project (if you don't have one).
+    3. Enable the [Geocoding API](https://developers.google.com/maps/documentation/geocoding/start).
+    4. Create credentials and obtain your API Key.
+
+4.  Modify the paths for your input (photos) and output (organized folders).
 Configure the Script:
     -   Replace `/path/to/your/images` with the path to your holiday photos folder.
     -   Replace `/path/to/sorted/images` with the desired output folder path for the organized images.
 
-4.  Run the script and let it sort your holiday memories!
+5.  Run the script and let it sort your holiday memories!
 Save the script as `organize_photos.py` and execute it:
 `python organize_photos.py` 
 

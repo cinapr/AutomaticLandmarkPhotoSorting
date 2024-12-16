@@ -9,7 +9,7 @@
 # and retrieve your photos from different locations 
 # without the hassle of manually sorting through them.
 
-# DEPENDENCIS : pip install Pillow geopy pillow-heif piexif 
+# DEPENDENCIS : pip install Pillow geopy pillow-heif piexif googlemaps
 # pip install pyheif (SKIP)
 
 import os
@@ -21,9 +21,21 @@ from PIL import Image
 import pillow_heif
 from pillow_heif import HeifImageFile
 import piexif
+import googlemaps
 
 # Enable HEIC support
 pillow_heif.register_heif_opener()
+
+# Function to extract the numerator and denominator from the tuples and then perform the division.
+def convert_to_degrees(value):
+    """Converts GPS coordinates stored as [(num1, den1), (num2, den2), (num3, den3)]
+    into decimal degrees."""
+    d = value[0][0] / value[0][1]  # Degrees
+    m = value[1][0] / value[1][1]  # Minutes
+    s = value[2][0] / value[2][1]  # Seconds
+    return d + (m / 60.0) + (s / 3600.0)
+
+
 
 # Function to extract GPS info from image metadata
 def get_gps_info(image_path):
@@ -31,26 +43,17 @@ def get_gps_info(image_path):
         img = Image.open(image_path)
         gps_info = {}
 
-        # Handle HEIF/HEIC files
         if isinstance(img, HeifImageFile):
             exif_data = img.info.get("exif", None)
             if not exif_data:
                 print(f"No EXIF metadata found in HEIC file: {image_path}")
                 return None
 
-            # Decode EXIF data using piexif
             decoded_exif = piexif.load(exif_data)
             gps_data = decoded_exif.get("GPS", {})
             if not gps_data:
                 print(f"No GPS metadata found in HEIC file: {image_path}")
                 return None
-
-            # Parse GPS data
-            def convert_to_degrees(value):
-                d = value[0] / value[1]
-                m = value[2] / value[3]
-                s = value[4] / value[5]
-                return d + (m / 60.0) + (s / 3600.0)
 
             lat = convert_to_degrees(gps_data[piexif.GPSIFD.GPSLatitude])
             if gps_data[piexif.GPSIFD.GPSLatitudeRef] != b'N':
@@ -61,7 +64,6 @@ def get_gps_info(image_path):
 
             return lat, lon
 
-        # Handle non-HEIC images (e.g., JPEG)
         exif_data = img._getexif()
         if not exif_data:
             return None
@@ -74,13 +76,6 @@ def get_gps_info(image_path):
                     gps_info[sub_decoded] = value[t]
         if not gps_info:
             return None
-
-        # Convert GPS info to decimal degrees
-        def convert_to_degrees(value):
-            d = value[0][0] / value[0][1]
-            m = value[1][0] / value[1][1]
-            s = value[2][0] / value[2][1]
-            return d + (m / 60.0) + (s / 3600.0)
 
         lat = convert_to_degrees(gps_info['GPSLatitude'])
         if gps_info['GPSLatitudeRef'] != 'N':
@@ -99,14 +94,56 @@ def get_gps_info(image_path):
         return None
 
 
+
+
+    
+
+
 # Function to get location details using Geopy
-def get_location_details(lat, lon):
+def get_location_details_addressGeopy(lat, lon):
     geolocator = Nominatim(user_agent="image_location_sorter")
     location = geolocator.reverse((lat, lon), exactly_one=True)
     if location:
         address = location.raw.get('address', {})
         return address.get('city', 'Unknown City'), address.get('attraction', location.address)
     return 'Unknown City', 'Unknown Landmark'
+
+
+
+
+# Function to return concise names (points of interest or locality) from coordinates
+# Function to return concise names using Google Maps API
+def get_concise_gmaps_name(latitude, longitude):
+    # Initialize the Google Maps client
+    gmaps = googlemaps.Client(key='YOUR_API_KEY')  # Replace 'YOUR_API_KEY' with your actual Google Maps API key.
+
+    # Get reverse geocode result
+    # Reverse Geocoding: You are using the gmaps.reverse_geocode() function to retrieve information about a specific latitude and longitude.
+    reverse_geocode_result = gmaps.reverse_geocode((latitude, longitude), result_type='point_of_interest')
+
+    # Check if any results are returned
+    if reverse_geocode_result:
+        for result in reverse_geocode_result:
+            # Look for 'point_of_interest' or similar components
+            # address_components: Each result contains a list of address components like locality, neighborhood, city, etc. You can modify the code to extract the exact level of detail you want (e.g., landmark, locality).
+            for component in result['address_components']:
+                # result_type='point_of_interest': This parameter ensures that the result will focus on Points of Interest (POIs), which typically includes landmarks or specific locations instead of a detailed address.
+                if 'point_of_interest' in result['types']:  # Check for POIs
+                    return result['formatted_address']
+                # Optionally, return the locality if point of interest is not found
+                if 'locality' in component['types']:
+                    return component['long_name']
+    return "Location not found"
+
+def get_location_details(lat, lon):
+    # Use the concise name function to get a simplified address or landmark
+    concise_name = get_concise_gmaps_name(lat, lon)
+    if concise_name != "Location not found":
+        return concise_name, concise_name  # You can modify how you return the name if needed
+    else:
+        return 'Unknown Location', 'Unknown Landmark'
+    
+
 
 # Organize images into folders
 def organize_images(image_folder, output_folder):
@@ -138,6 +175,8 @@ def organize_images(image_folder, output_folder):
 
         # Move image
         shutil.move(image_path, os.path.join(landmark_folder, image_file))
+
+
 
 # Main execution
 if __name__ == "__main__":
