@@ -162,8 +162,12 @@ cython_debug/
 #.idea/
 
 # Picture
-.png
-.jpg
-.jpeg
-.heic
-.HEIC
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.HEIC
+*.HEIC
+*.MOV
+*.JPG
+*.JPEG
